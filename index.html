@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>TCP Server Client Pro</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        padding: 20px;
+      }
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, 0.98);
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        overflow: hidden;
+      }
+      .header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+        position: relative;
+      }
+      .header h1 {
+        font-size: 2.8em;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        animation: fadeInDown 0.6s ease;
+      }
+      @keyframes fadeInDown {
+        from {
+          opacity: 0;
+          transform: translateY(-20px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+      .status-bar {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 20px;
+        margin-top: 15px;
+        flex-wrap: wrap;
+      }
+      .status {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 25px;
+        border-radius: 25px;
+        font-weight: bold;
+        font-size: 0.95em;
+        transition: all 0.3s;
+      }
+      .status-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        animation: pulse 2s infinite;
+        background: #fff;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+      .status.connected {
+        background: #10b981;
+      }
+      .status.disconnected {
+        background: #ef4444;
+      }
+      .stats {
+        display: flex;
+        gap: 15px;
+      }
+      .stat-item {
+        background: rgba(255, 255, 255, 0.2);
+        padding: 8px 15px;
+        border-radius: 15px;
+        font-size: 0.9em;
+      }
+      .main-content {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 20px;
+        padding: 30px;
+      }
+      .panel {
+        background: white;
+        border-radius: 15px;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s, box-shadow 0.3s;
+      }
+      .panel:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+      }
+      .panel h2 {
+        color: #667eea;
+        margin-bottom: 20px;
+        font-size: 1.6em;
+        border-bottom: 3px solid #667eea;
+        padding-bottom: 12px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .connection-form {
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 20px;
+      }
+      .connection-form input {
+        padding: 14px;
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        font-size: 1em;
+        transition: all 0.3s;
+      }
+      .connection-form input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      }
+      button {
+        padding: 14px 28px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        font-size: 1em;
+        font-weight: bold;
+        cursor: pointer;
+        transition: all 0.3s;
+        position: relative;
+        overflow: hidden;
+      }
+      button::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+      }
+      button:hover::before {
+        width: 300px;
+        height: 300px;
+      }
+      button:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+      }
+      button:active {
+        transform: translateY(0);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+      button.secondary {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      }
+      button.danger {
+        background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      }
+      .terminal {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        color: #10b981;
+        padding: 20px;
+        border-radius: 12px;
+        height: 450px;
+        overflow-y: auto;
+        font-family: "Courier New", monospace;
+        font-size: 0.95em;
+        line-height: 1.7;
+        box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.5);
+      }
+      .terminal::-webkit-scrollbar {
+        width: 10px;
+      }
+      .terminal::-webkit-scrollbar-track {
+        background: #0f172a;
+        border-radius: 10px;
+      }
+      .terminal::-webkit-scrollbar-thumb {
+        background: #667eea;
+        border-radius: 10px;
+      }
+      .terminal-line {
+        margin-bottom: 8px;
+        animation: fadeIn 0.3s ease;
+        white-space: pre-wrap;
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateX(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateX(0);
+        }
+      }
+      .terminal-line.error {
+        color: #ef4444;
+        font-weight: bold;
+      }
+      .terminal-line.success {
+        color: #10b981;
+      }
+      .terminal-line.info {
+        color: #3b82f6;
+      }
+      .terminal-line.warning {
+        color: #f59e0b;
+      }
+      .terminal-line.command {
+        color: #a78bfa;
+        font-weight: bold;
+      }
+      .command-input-wrapper {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+      }
+      .command-input-wrapper input {
+        flex: 1;
+        padding: 14px;
+        border: 2px solid #e5e7eb;
+        border-radius: 10px;
+        font-family: "Courier New", monospace;
+        font-size: 1em;
+        background: #f8fafc;
+      }
+      .quick-commands {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+        gap: 10px;
+        margin-top: 15px;
+      }
+      .quick-commands button {
+        padding: 10px 15px;
+        font-size: 0.9em;
+      }
+      .file-ops {
+        display: grid;
+        gap: 20px;
+      }
+      .file-op-group {
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 20px;
+        transition: all 0.3s;
+      }
+      .file-op-group:hover {
+        border-color: #667eea;
+        background: #f8fafc;
+      }
+      .file-op-group h3 {
+        color: #764ba2;
+        margin-bottom: 12px;
+        font-size: 1.2em;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .file-op-group input,
+      .file-op-group textarea,
+      .file-op-group select {
+        width: 100%;
+        padding: 12px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        margin-bottom: 10px;
+        font-size: 0.95em;
+        transition: border-color 0.3s;
+      }
+      .file-op-group textarea {
+        resize: vertical;
+        min-height: 100px;
+        font-family: "Courier New", monospace;
+      }
+      .button-group {
+        display: flex;
+        gap: 10px;
+      }
+      .button-group button {
+        flex: 1;
+      }
+      .history {
+        max-height: 250px;
+        overflow-y: auto;
+        background: #f3f4f6;
+        border-radius: 10px;
+        padding: 15px;
+      }
+      .history-item {
+        padding: 10px 15px;
+        margin-bottom: 8px;
+        background: white;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-family: "Courier New", monospace;
+        font-size: 0.9em;
+        border-left: 4px solid #667eea;
+      }
+      .history-item:hover {
+        background: #e5e7eb;
+        transform: translateX(5px);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      }
+      .calc-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+      .calc-grid input {
+        width: 100%;
+        padding: 14px;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        font-size: 1.1em;
+        text-align: center;
+      }
+      .calc-buttons {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+      .calc-result {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        font-size: 1.5em;
+        font-weight: bold;
+        margin-top: 15px;
+        display: none;
+      }
+      .file-browser {
+        background: #f8fafc;
+        border-radius: 10px;
+        padding: 15px;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      .file-item {
+        padding: 10px;
+        margin-bottom: 5px;
+        background: white;
+        border-radius: 6px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: all 0.2s;
+      }
+      .file-item:hover {
+        background: #e5e7eb;
+        transform: translateX(5px);
+      }
+      .file-icon {
+        font-size: 1.3em;
+      }
+      .system-info {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+      }
+      .info-card {
+        background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+        padding: 15px;
+        border-radius: 10px;
+        text-align: center;
+      }
+      .info-card h4 {
+        color: #667eea;
+        margin-bottom: 8px;
+        font-size: 0.9em;
+      }
+      .info-card p {
+        font-size: 1.3em;
+        font-weight: bold;
+        color: #1e293b;
+      }
+      @media (max-width: 1024px) {
+        .main-content {
+          grid-template-columns: 1fr;
+        }
+        .connection-form {
+          grid-template-columns: 1fr;
+        }
+      }
+      .toast {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        background: white;
+        padding: 15px 25px;
+        border-radius: 10px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        z-index: 1000;
+        animation: slideInRight 0.3s ease;
+        display: none;
+      }
+      @keyframes slideInRight {
+        from {
+          transform: translateX(400px);
+          opacity: 0;
+        }
+        to {
+          transform: translateX(0);
+          opacity: 1;
+        }
+      }
+      .toast.show {
+        display: block;
+      }
+      .toast.success {
+        border-left: 5px solid #10b981;
+      }
+      .toast.error {
+        border-left: 5px solid #ef4444;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <h1>🖥️ TCP Server Client Pro</h1>
+        <p>Advanced Multi-Function Server Communication Interface</p>
+        <div class="status-bar">
+          <div class="status disconnected" id="status">
+            <span class="status-indicator"></span>
+            DISCONNECTED
+          </div>
+          <div class="stats">
+            <div class="stat-item">📤 Sent: <span id="sentCount">0</span></div>
+            <div class="stat-item">
+              📥 Received: <span id="recvCount">0</span>
+            </div>
+            <div class="stat-item">
+              ⏱️ Uptime: <span id="uptime">00:00</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div style="display: grid; gap: 20px">
+          <div class="panel">
+            <h2>📡 Connection & Terminal</h2>
+            <div class="connection-form">
+              <input
+                type="text"
+                id="serverIp"
+                placeholder="Server IP Address"
+                value="127.0.0.1"
+              />
+              <input
+                type="number"
+                id="serverPort"
+                placeholder="Port"
+                value="5566"
+              />
+              <button onclick="toggleConnection()" id="connectBtn">
+                🔌 Connect
+              </button>
+            </div>
+
+            <div class="terminal" id="terminal"></div>
+
+            <div class="command-input-wrapper">
+              <input
+                type="text"
+                id="commandInput"
+                placeholder="Enter command (e.g., TIME, ECHO message, LIST .)"
+                onkeypress="handleKeyPress(event)"
+                autocomplete="off"
+              />
+              <button onclick="sendCommand()" class="secondary">▶️ Send</button>
+            </div>
+
+            <div class="quick-commands">
+              <button onclick="quickCommand('TIME')">⏰ Get Time</button>
+              <button onclick="quickCommand('LIST .')">📁 List Files</button>
+              <button onclick="quickCommand('ECHO Hello Server!')">
+                💬 Echo Test
+              </button>
+              <button onclick="quickCommand('UPTIME')">⚡ Uptime</button>
+              <button onclick="quickCommand('STATS')">📊 Stats</button>
+              <button onclick="clearTerminal()" class="danger">🗑️ Clear</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>📂 File Manager</h2>
+            <div class="file-ops">
+              <div class="file-op-group">
+                <h3>📝 Create New File</h3>
+                <input type="text" id="createPath" placeholder="filename.txt" />
+                <button onclick="createFile()" class="secondary">
+                  ➕ Create File
+                </button>
+              </div>
+
+              <div class="file-op-group">
+                <h3>✏️ Write/Append Content</h3>
+                <input type="text" id="writePath" placeholder="filename.txt" />
+                <textarea
+                  id="writeData"
+                  placeholder="Enter your content here..."
+                ></textarea>
+                <div class="button-group">
+                  <button onclick="writeFile()" class="secondary">
+                    💾 Write
+                  </button>
+                  <button onclick="appendFile()">➕ Append</button>
+                </div>
+              </div>
+
+              <div class="file-op-group">
+                <h3>📖 Read/Delete Files</h3>
+                <input type="text" id="readPath" placeholder="filename.txt" />
+                <div class="button-group">
+                  <button onclick="readFile()" class="secondary">
+                    📖 Read
+                  </button>
+                  <button onclick="deleteFile()" class="danger">
+                    🗑️ Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div style="margin-top: 20px">
+              <h3 style="color: #764ba2; margin-bottom: 10px">
+                📂 File Browser
+              </h3>
+              <div class="file-browser" id="fileBrowser">
+                <p style="text-align: center; color: #6b7280">
+                  Click "List Files" to browse
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: grid; gap: 20px">
+          <div class="panel">
+            <h2>🧮 Advanced Calculator</h2>
+            <div class="calc-grid">
+              <input
+                type="number"
+                id="num1"
+                placeholder="Number 1"
+                value="42"
+              />
+              <input type="number" id="num2" placeholder="Number 2" value="8" />
+            </div>
+            <div class="calc-buttons">
+              <button onclick="calculate('ADD')" class="secondary">
+                ➕ Add
+              </button>
+              <button onclick="calculate('SUB')" class="secondary">
+                ➖ Subtract
+              </button>
+              <button onclick="calculate('MUL')" class="secondary">
+                ✖️ Multiply
+              </button>
+              <button onclick="calculate('DIV')" class="secondary">
+                ➗ Divide
+              </button>
+            </div>
+            <div class="calc-result" id="calcResult">
+              Result: <span id="resultValue">0</span>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>📜 Command History</h2>
+            <div class="history" id="history">
+              <p style="text-align: center; color: #6b7280">No commands yet</p>
+            </div>
+            <div class="button-group" style="margin-top: 15px">
+              <button onclick="exportHistory()" class="secondary">
+                💾 Export
+              </button>
+              <button onclick="clearHistory()" class="danger">🗑️ Clear</button>
+            </div>
+          </div>
+
+          <div class="panel">
+            <h2>📊 System Information</h2>
+            <div class="system-info">
+              <div class="info-card">
+                <h4>Commands Sent</h4>
+                <p id="totalCommands">0</p>
+              </div>
+              <div class="info-card">
+                <h4>Files Created</h4>
+                <p id="filesCreated">0</p>
+              </div>
+              <div class="info-card">
+                <h4>Calculations</h4>
+                <p id="calculations">0</p>
+              </div>
+              <div class="info-card">
+                <h4>Session Time</h4>
+                <p id="sessionTime">0s</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+      /***** Persistent TCP UI script with full localStorage save/load + server-sync friendly updates *****/
+
+      let ws = null;
+      let connected = false;
+      let commandHistory = [];
+      let historyIndex = -1;
+      let sentCount = 0;
+      let recvCount = 0;
+      let startTime = null;
+      let uptimeInterval = null;
+      let filesCreated = 0;
+      let calculations = 0;
+      // sessionStartTime is persisted so "Session Time" survives reloads
+      let sessionStartTime = Date.now();
+
+      // Simulated file system (client-side fallback) - default values but loadState() will overwrite
+      let fileSystem = {
+        "readme.txt": "Welcome to TCP Server!\nThis is a test file.",
+        "config.ini": "[Settings]\nport=5566\nip=127.0.0.1",
+        "data.txt": "Sample data file content",
+      };
+
+      // Terminal lines persisted as array of {time, text, type}
+      let terminalLines = [];
+
+      const STORAGE_KEY = "tcppro_state_v1";
+
+      /* ---------- Persistence: save / load ---------- */
+
+      function saveState() {
+        try {
+          const state = {
+            fileSystem,
+            commandHistory,
+            sentCount,
+            recvCount,
+            filesCreated,
+            calculations,
+            sessionStartTime,
+            terminalLines,
+          };
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (e) {
+          console.warn("Could not save state:", e);
+        }
+      }
+
+      function loadState() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return;
+          const state = JSON.parse(raw);
+          if (state.fileSystem && typeof state.fileSystem === "object")
+            fileSystem = state.fileSystem;
+          if (Array.isArray(state.commandHistory))
+            commandHistory = state.commandHistory;
+          if (typeof state.sentCount === "number") sentCount = state.sentCount;
+          if (typeof state.recvCount === "number") recvCount = state.recvCount;
+          if (typeof state.filesCreated === "number")
+            filesCreated = state.filesCreated;
+          if (typeof state.calculations === "number")
+            calculations = state.calculations;
+          if (typeof state.sessionStartTime === "number")
+            sessionStartTime = state.sessionStartTime;
+          if (Array.isArray(state.terminalLines))
+            terminalLines = state.terminalLines;
+        } catch (e) {
+          console.warn("Could not load state:", e);
+        }
+      }
+
+      // autosave helper: throttle saves slightly to avoid too many writes
+      let saveTimeout = null;
+      function scheduleSave(delay = 300) {
+        if (saveTimeout) clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(() => {
+          saveState();
+          saveTimeout = null;
+        }, delay);
+      }
+
+      /* ---------- UI utilities ---------- */
+
+      function showToast(message, type = "success") {
+        const toast = document.getElementById("toast");
+        toast.textContent = message;
+        toast.className = `toast ${type} show`;
+        setTimeout(() => {
+          toast.className = "toast";
+        }, 3000);
+      }
+
+      function addToTerminal(text, type = "info", ts = null) {
+        const terminal = document.getElementById("terminal");
+        const line = document.createElement("div");
+        line.className = `terminal-line ${type}`;
+        const timestamp = ts || new Date().toLocaleTimeString();
+        line.textContent = `[${timestamp}] ${text}`;
+        terminal.appendChild(line);
+        terminal.scrollTop = terminal.scrollHeight;
+
+        // persist
+        terminalLines.push({ time: timestamp, text, type });
+        if (type === "success") recvCount++;
+        updateStats();
+        scheduleSave();
+      }
+
+      function renderTerminalFromState() {
+        const terminal = document.getElementById("terminal");
+        terminal.innerHTML = "";
+        (terminalLines || []).forEach((l) => {
+          const line = document.createElement("div");
+          line.className = `terminal-line ${l.type || "info"}`;
+          line.textContent = `[${l.time}] ${l.text}`;
+          terminal.appendChild(line);
+        });
+        terminal.scrollTop = terminal.scrollHeight;
+      }
+
+      function updateStatus(isConnected) {
+        connected = isConnected;
+        const status = document.getElementById("status");
+        const connectBtn = document.getElementById("connectBtn");
+        if (isConnected) {
+          status.innerHTML = '<span class="status-indicator"></span> CONNECTED';
+          status.className = "status connected";
+          connectBtn.textContent = "🔌 Disconnect";
+          startTime = Date.now();
+          startUptimeCounter();
+          addToTerminal("Connected successfully!", "success");
+        } else {
+          status.innerHTML =
+            '<span class="status-indicator"></span> DISCONNECTED';
+          status.className = "status disconnected";
+          connectBtn.textContent = "🔌 Connect";
+          stopUptimeCounter();
+          addToTerminal("Disconnected from server", "warning");
+          startTime = null;
+        }
+        scheduleSave();
+      }
+
+      function startUptimeCounter() {
+        stopUptimeCounter();
+        uptimeInterval = setInterval(() => {
+          if (startTime) {
+            const elapsed = Math.floor((Date.now() - startTime) / 1000);
+            const minutes = Math.floor(elapsed / 60);
+            const seconds = elapsed % 60;
+            document.getElementById("uptime").textContent = `${String(
+              minutes
+            ).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+          }
+          const sessionElapsed = Math.floor(
+            (Date.now() - sessionStartTime) / 1000
+          );
+          document.getElementById(
+            "sessionTime"
+          ).textContent = `${sessionElapsed}s`;
+        }, 1000);
+      }
+
+      function stopUptimeCounter() {
+        if (uptimeInterval) {
+          clearInterval(uptimeInterval);
+          uptimeInterval = null;
+        }
+        document.getElementById("uptime").textContent = "00:00";
+      }
+
+      function updateStats() {
+        document.getElementById("sentCount").textContent = sentCount;
+        document.getElementById("recvCount").textContent = recvCount;
+        document.getElementById("totalCommands").textContent =
+          commandHistory.length;
+        document.getElementById("filesCreated").textContent = filesCreated;
+        document.getElementById("calculations").textContent = calculations;
+      }
+
+      /* ---------- Connection / WebSocket ---------- */
+
+      function toggleConnection() {
+        if (connected && ws) {
+          ws.close();
+          updateStatus(false);
+          addToTerminal("Disconnecting...", "warning");
+        } else {
+          connectToServer();
+        }
+      }
+
+      function connectToServer() {
+        const ip = document.getElementById("serverIp").value.trim();
+        const port = document.getElementById("serverPort").value.trim();
+        addToTerminal(`Attempting connection to ${ip}:${port}...`, "info");
+
+        try {
+          ws = new WebSocket(`ws://${ip}:${port}`);
+          ws.onopen = () => {
+            updateStatus(true);
+            addToTerminal("✓ Connection established successfully!", "success");
+            // Optional: request LIST to sync server -> client
+            ws.send("LIST .");
+          };
+          ws.onmessage = (event) => {
+            // Display raw server message
+            addToTerminal("← " + event.data, "success");
+            // Try to parse server responses to keep client state in sync
+            handleServerMessage(event.data);
+          };
+          ws.onerror = (error) => {
+            addToTerminal(
+              "⚠ WebSocket error. Switching to simulation mode...",
+              "warning"
+            );
+            simulateConnection();
+          };
+          ws.onclose = () => {
+            updateStatus(false);
+            addToTerminal("✗ Connection closed", "warning");
+            ws = null;
+          };
+        } catch (error) {
+          addToTerminal(
+            "⚠ Connection failed. Using simulation mode for demo.",
+            "warning"
+          );
+          simulateConnection();
+        }
+      }
+
+      function simulateConnection() {
+        updateStatus(true);
+        addToTerminal(
+          "✓ Simulation mode active (Full functionality enabled)",
+          "success"
+        );
+        addToTerminal("💡 Tip: All commands work in simulation mode!", "info");
+      }
+
+      /* Parse some server messages to keep local fileSystem in sync.
+   The server implementation sends lines like:
+   "OK: Created filename"
+   "OK: Written to filename"
+   "OK: Appended to filename"
+   "OK: Deleted filename"
+   "  📄 filename" (from LIST)
+   and file content (for READ)
+*/
+      function handleServerMessage(msg) {
+        if (!msg || typeof msg !== "string") return;
+        const trimmed = msg.trim();
+
+        // OK: Created <name>
+        if (trimmed.startsWith("OK: Created ")) {
+          const name = trimmed.slice("OK: Created ".length).trim();
+          if (name) {
+            fileSystem[name] = fileSystem[name] || "";
+            filesCreated++;
+            updateFileBrowser();
+            scheduleSave();
+          }
+          return;
+        }
+
+        // OK: Written to <name>
+        if (trimmed.startsWith("OK: Written to ")) {
+          const name = trimmed.slice("OK: Written to ".length).trim();
+          // we don't know content from server unless server sends it; leave as-is
+          // but mark saved: if client recently sent WRITE, optimistic update already made.
+          updateFileBrowser();
+          scheduleSave();
+          return;
+        }
+
+        // OK: Appended to <name>
+        if (trimmed.startsWith("OK: Appended to ")) {
+          updateFileBrowser();
+          scheduleSave();
+          return;
+        }
+
+        // OK: Deleted <name>
+        if (trimmed.startsWith("OK: Deleted ")) {
+          const name = trimmed.slice("OK: Deleted ".length).trim();
+          if (name && fileSystem[name] !== undefined) {
+            delete fileSystem[name];
+            updateFileBrowser();
+            scheduleSave();
+          }
+          return;
+        }
+
+        // Directory listing items: server sends lines like "  📄 filename"
+        if (
+          trimmed.startsWith("📁 Directory listing:") ||
+          trimmed.startsWith("📁")
+        ) {
+          // ignore header
+          return;
+        }
+        if (
+          trimmed.startsWith("📄") ||
+          trimmed.startsWith("  📄") ||
+          trimmed.startsWith("  📄")
+        ) {
+          // try to extract filename
+          const parts = trimmed.split("📄");
+          if (parts.length > 1) {
+            const name = parts[1].trim();
+            if (name) {
+              // ensure the file exists locally (we don't have its content)
+              fileSystem[name] = fileSystem[name] || "";
+              updateFileBrowser();
+              scheduleSave();
+            }
+          }
+          return;
+        }
+
+        // READ responses: server may send "📖 filename:" then next message is content
+        if (trimmed.startsWith("📖")) {
+          // store current read-target so next message (content) can be saved
+          // format: "📖 name:" -> extract name before colon
+          const after = trimmed.slice(1).trim();
+          const idx = after.indexOf(":");
+          const probableName = idx === -1 ? after : after.slice(0, idx).trim();
+          // mark that next message is content for this file
+          ws._lastReadTarget = probableName || null;
+          return;
+        }
+        // If we previously saw a READ header (ws._lastReadTarget), treat this message as content
+        if (ws && ws._lastReadTarget) {
+          const name = ws._lastReadTarget;
+          fileSystem[name] = (fileSystem[name] || "") + msg.toString();
+          // clear marker
+          ws._lastReadTarget = null;
+          updateFileBrowser();
+          scheduleSave();
+          return;
+        }
+      }
+
+      /* ---------- Commands (send/handle) ---------- */
+
+      function sendCommand(cmd = null) {
+        const input = document.getElementById("commandInput");
+        const command = (cmd || input.value || "").trim();
+        if (!command) {
+          showToast("Please enter a command", "error");
+          return;
+        }
+
+        // If not connected, tell user and allow simulation only
+        if (!connected) {
+          showToast("Not connected to server", "error");
+          addToTerminal(
+            '✗ Not connected. Click "Connect" or use simulation mode.',
+            "error"
+          );
+          return;
+        }
+
+        addToTerminal("→ " + command, "command");
+        sentCount++;
+        commandHistory.unshift({
+          cmd: command,
+          time: new Date().toLocaleTimeString(),
+        });
+        updateHistoryDisplay();
+
+        // If ws open, send; also perform optimistic local update so localStorage reflects change immediately,
+        // because server might accept and not send back full state.
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          // Do optimistic local update for commands that modify files:
+          tryApplyLocalForCommand(command);
+          ws.send(command);
+        } else {
+          // fallback to simulation (keeps existing behavior)
+          simulateResponse(command);
+        }
+
+        input.value = "";
+        historyIndex = -1;
+        updateStats();
+        scheduleSave();
+      }
+
+      function tryApplyLocalForCommand(command) {
+        // Make the same changes simulation mode would: CREATE, WRITE, APPEND, DELETE
+        const parts = command.split(" ").filter(Boolean);
+        const cmd = (parts[0] || "").toUpperCase();
+        switch (cmd) {
+          case "CREATE": {
+            const name = parts[1];
+            if (name && fileSystem[name] === undefined) {
+              fileSystem[name] = "";
+              filesCreated++;
+              addToTerminal(`(local) OK: File '${name}' created`, "info");
+              updateFileBrowser();
+            }
+            break;
+          }
+          case "WRITE": {
+            const name = parts[1];
+            const data = parts.slice(2).join(" ");
+            if (name) {
+              fileSystem[name] = data;
+              addToTerminal(`(local) OK: Written to '${name}'`, "info");
+              updateFileBrowser();
+            }
+            break;
+          }
+          case "APPEND": {
+            const name = parts[1];
+            const data = parts.slice(2).join(" ");
+            if (name) {
+              fileSystem[name] = (fileSystem[name] || "") + data;
+              addToTerminal(`(local) OK: Appended to '${name}'`, "info");
+              updateFileBrowser();
+            }
+            break;
+          }
+          case "DELETE": {
+            const name = parts[1];
+            if (name && fileSystem[name] !== undefined) {
+              delete fileSystem[name];
+              addToTerminal(`(local) OK: Deleted '${name}'`, "info");
+              updateFileBrowser();
+            }
+            break;
+          }
+          // READ, LIST, ECHO, TIME do not change local files
+        }
+        scheduleSave();
+      }
+
+      function simulateResponse(command) {
+        const parts = command.split(" ").filter(Boolean);
+        const cmd = (parts[0] || "").toUpperCase();
+
+        setTimeout(() => {
+          switch (cmd) {
+            case "TIME": {
+              const now = new Date();
+              addToTerminal(
+                `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(
+                  2,
+                  "0"
+                )}-${String(now.getDate()).padStart(
+                  2,
+                  "0"
+                )} ${now.toLocaleTimeString()}`,
+                "success"
+              );
+              break;
+            }
+            case "ECHO": {
+              const echoMsg = parts.slice(1).join(" ") || "";
+              addToTerminal(echoMsg, "success");
+              break;
+            }
+            case "LIST": {
+              addToTerminal("📁 Directory listing:", "info");
+              Object.keys(fileSystem).forEach((file) =>
+                addToTerminal(`  📄 ${file}`, "success")
+              );
+              updateFileBrowser();
+              break;
+            }
+            case "READ": {
+              const readFile = parts[1];
+              if (readFile && fileSystem[readFile] !== undefined) {
+                addToTerminal(`📖 Reading ${readFile}:`, "info");
+                addToTerminal(fileSystem[readFile], "success");
+              } else {
+                addToTerminal(`ERROR: File '${readFile}' not found`, "error");
+              }
+              break;
+            }
+            case "CREATE": {
+              const createFile = parts[1];
+              if (!createFile) {
+                addToTerminal("ERROR: CREATE requires a filename", "error");
+                break;
+              }
+              if (fileSystem[createFile] !== undefined) {
+                addToTerminal(
+                  `ERROR: File '${createFile}' already exists`,
+                  "error"
+                );
+              } else {
+                fileSystem[createFile] = "";
+                filesCreated++;
+                addToTerminal(
+                  `OK: File '${createFile}' created successfully`,
+                  "success"
+                );
+                showToast(`File '${createFile}' created!`, "success");
+                updateStats();
+                updateFileBrowser();
+                scheduleSave();
+              }
+              break;
+            }
+            case "WRITE": {
+              const writeFile = parts[1];
+              const writeData = parts.slice(2).join(" ");
+              if (!writeFile) {
+                addToTerminal(
+                  "ERROR: WRITE requires a filename and content",
+                  "error"
+                );
+                break;
+              }
+              fileSystem[writeFile] = writeData;
+              addToTerminal(`OK: Written to '${writeFile}'`, "success");
+              showToast(`Data written to '${writeFile}'`, "success");
+              updateFileBrowser();
+              scheduleSave();
+              break;
+            }
+            case "APPEND": {
+              const appendFile = parts[1];
+              const appendData = parts.slice(2).join(" ");
+              if (!appendFile) {
+                addToTerminal(
+                  "ERROR: APPEND requires a filename and content",
+                  "error"
+                );
+                break;
+              }
+              fileSystem[appendFile] =
+                (fileSystem[appendFile] || "") + appendData;
+              addToTerminal(`OK: Appended to '${appendFile}'`, "success");
+              showToast(`Data appended to '${appendFile}'`, "success");
+              updateFileBrowser();
+              scheduleSave();
+              break;
+            }
+            case "DELETE": {
+              const del = parts[1];
+              if (!del) {
+                addToTerminal("ERROR: DELETE requires a filename", "error");
+                break;
+              }
+              if (fileSystem[del] !== undefined) {
+                delete fileSystem[del];
+                addToTerminal(`OK: Deleted '${del}'`, "success");
+                updateFileBrowser();
+                scheduleSave();
+              } else {
+                addToTerminal(`ERROR: File '${del}' not found`, "error");
+              }
+              break;
+            }
+            case "STATS": {
+              addToTerminal("📊 Stats:", "info");
+              addToTerminal(
+                `Commands sent: ${commandHistory.length}`,
+                "success"
+              );
+              addToTerminal(
+                `Files: ${Object.keys(fileSystem).length}`,
+                "success"
+              );
+              addToTerminal(
+                `Files created this session: ${filesCreated}`,
+                "success"
+              );
+              break;
+            }
+            case "UPTIME": {
+              if (startTime) {
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                addToTerminal(`Server uptime (sim): ${elapsed}s`, "success");
+              } else {
+                addToTerminal("Server uptime: 0s", "success");
+              }
+              break;
+            }
+            default:
+              addToTerminal(`ERROR: Unknown command '${cmd}'`, "error");
+              break;
+          }
+        }, 300);
+      }
+
+      /* ---------- UI helpers and file operation wrappers ---------- */
+
+      function handleKeyPress(e) {
+        if (e.key === "Enter") {
+          sendCommand();
+        } else if (e.key === "ArrowUp") {
+          if (commandHistory.length === 0) return;
+          historyIndex = Math.min(historyIndex + 1, commandHistory.length - 1);
+          document.getElementById("commandInput").value =
+            commandHistory[historyIndex].cmd;
+        } else if (e.key === "ArrowDown") {
+          if (commandHistory.length === 0) return;
+          historyIndex = Math.max(historyIndex - 1, -1);
+          document.getElementById("commandInput").value =
+            historyIndex === -1 ? "" : commandHistory[historyIndex].cmd;
+        }
+      }
+
+      function quickCommand(cmd) {
+        document.getElementById("commandInput").value = cmd;
+        sendCommand(cmd);
+      }
+
+      function clearTerminal() {
+        const terminal = document.getElementById("terminal");
+        terminal.innerHTML = "";
+        terminalLines = [];
+        addToTerminal("Terminal cleared", "info");
+        scheduleSave();
+      }
+
+      function updateFileBrowser() {
+        const browser = document.getElementById("fileBrowser");
+        browser.innerHTML = "";
+        const keys = Object.keys(fileSystem);
+        if (!keys.length) {
+          browser.innerHTML =
+            '<p style="text-align:center;color:#6b7280;">No files</p>';
+          return;
+        }
+        keys.forEach((name) => {
+          const div = document.createElement("div");
+          div.className = "file-item";
+          div.innerHTML = `<div class="file-icon">📄</div><div style="flex:1">${name}</div><div style="opacity:0.6">${String(
+            (fileSystem[name] || "").length
+          )} bytes</div>`;
+          div.onclick = () => {
+            document.getElementById("readPath").value = name;
+            readFile(name);
+          };
+          browser.appendChild(div);
+        });
+      }
+
+      function createFile() {
+        const name = document.getElementById("createPath").value.trim();
+        if (!name) {
+          showToast("Provide filename", "error");
+          return;
+        }
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          tryApplyLocalForCommand(`CREATE ${name}`);
+          ws.send(`CREATE ${name}`);
+        } else {
+          simulateResponse(`CREATE ${name}`);
+        }
+        document.getElementById("createPath").value = "";
+        scheduleSave();
+      }
+
+      function writeFile() {
+        const name = document.getElementById("writePath").value.trim();
+        const data = document.getElementById("writeData").value;
+        if (!name) {
+          showToast("Provide filename", "error");
+          return;
+        }
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          tryApplyLocalForCommand(`WRITE ${name} ${data}`);
+          ws.send(`WRITE ${name} ${data}`);
+        } else {
+          simulateResponse(`WRITE ${name} ${data}`);
+        }
+        document.getElementById("writePath").value = "";
+        document.getElementById("writeData").value = "";
+        scheduleSave();
+      }
+
+      function appendFile() {
+        const name = document.getElementById("writePath").value.trim();
+        const data = document.getElementById("writeData").value;
+        if (!name) {
+          showToast("Provide filename to append", "error");
+          return;
+        }
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          tryApplyLocalForCommand(`APPEND ${name} ${data}`);
+          ws.send(`APPEND ${name} ${data}`);
+        } else {
+          simulateResponse(`APPEND ${name} ${data}`);
+        }
+        document.getElementById("writePath").value = "";
+        document.getElementById("writeData").value = "";
+        scheduleSave();
+      }
+
+      function readFile(filename = null) {
+        const name =
+          filename || document.getElementById("readPath").value.trim();
+        if (!name) {
+          showToast("Provide filename to read", "error");
+          return;
+        }
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(`READ ${name}`);
+        } else {
+          simulateResponse(`READ ${name}`);
+        }
+      }
+
+      function deleteFile() {
+        const name = document.getElementById("readPath").value.trim();
+        if (!name) {
+          showToast("Provide filename to delete", "error");
+          return;
+        }
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          tryApplyLocalForCommand(`DELETE ${name}`);
+          ws.send(`DELETE ${name}`);
+        } else {
+          simulateResponse(`DELETE ${name}`);
+        }
+        document.getElementById("readPath").value = "";
+        scheduleSave();
+      }
+
+      function updateHistoryDisplay() {
+        const h = document.getElementById("history");
+        h.innerHTML = "";
+        if (!commandHistory.length) {
+          h.innerHTML =
+            '<p style="text-align:center;color:#6b7280;">No commands yet</p>';
+          return;
+        }
+        commandHistory.forEach((item) => {
+          const div = document.createElement("div");
+          div.className = "history-item";
+          div.textContent = `[${item.time}] ${item.cmd}`;
+          div.onclick = () => {
+            document.getElementById("commandInput").value = item.cmd;
+          };
+          h.appendChild(div);
+        });
+      }
+
+      function exportHistory() {
+        if (!commandHistory.length) {
+          showToast("No history to export", "error");
+          return;
+        }
+        const blob = new Blob([JSON.stringify(commandHistory, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `command_history_${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+        showToast("History exported", "success");
+      }
+
+      function clearHistory() {
+        commandHistory = [];
+        updateHistoryDisplay();
+        showToast("History cleared", "success");
+        scheduleSave();
+      }
+
+      function calculate(op) {
+        const a = Number(document.getElementById("num1").value) || 0;
+        const b = Number(document.getElementById("num2").value) || 0;
+        let res = 0;
+        switch (op) {
+          case "ADD":
+            res = a + b;
+            break;
+          case "SUB":
+            res = a - b;
+            break;
+          case "MUL":
+            res = a * b;
+            break;
+          case "DIV":
+            if (b === 0) {
+              showToast("Division by zero", "error");
+              return;
+            }
+            res = a / b;
+            break;
+        }
+        calculations++;
+        document.getElementById("resultValue").textContent = res;
+        document.getElementById("calcResult").style.display = "block";
+        updateStats();
+        scheduleSave();
+      }
+
+      /* ---------- Init: load saved state and bind unload save ---------- */
+      window.addEventListener("load", () => {
+        loadState();
+        updateFileBrowser();
+        updateStats();
+        updateHistoryDisplay();
+        renderTerminalFromState();
+        if (!sessionStartTime) sessionStartTime = Date.now();
+        startUptimeCounter();
+      });
+
+      // Save before page unload
+      window.addEventListener("beforeunload", () => {
+        saveState();
+      });
+
+      // Expose functions used by HTML
+      window.toggleConnection = toggleConnection;
+      window.sendCommand = sendCommand;
+      window.handleKeyPress = handleKeyPress;
+      window.quickCommand = quickCommand;
+      window.clearTerminal = clearTerminal;
+      window.createFile = createFile;
+      window.writeFile = writeFile;
+      window.appendFile = appendFile;
+      window.readFile = readFile;
+      window.deleteFile = deleteFile;
+      window.exportHistory = exportHistory;
+      window.clearHistory = clearHistory;
+      window.calculate = calculate;
+    </script>
+  </body>
+</html>
